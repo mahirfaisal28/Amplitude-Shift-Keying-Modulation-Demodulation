@@ -1,0 +1,368 @@
+classdef ASK < matlab.apps.AppBase
+
+    % Properties that correspond to app components
+    properties (Access = public)
+        UIFigure                   matlab.ui.Figure
+        Image2                     matlab.ui.control.Image
+        TransmitButton             matlab.ui.control.StateButton
+        Image                      matlab.ui.control.Image
+        CARRIERButton              matlab.ui.control.StateButton
+        MESSAGEButton              matlab.ui.control.StateButton
+        DEMODULATIONButton         matlab.ui.control.StateButton
+        MODULATIONButton           matlab.ui.control.StateButton
+        CARRIERGENERATIONPanel     matlab.ui.container.Panel
+        CarrierFrequencyKnob       matlab.ui.control.Knob
+        CarrierFrequencyKnobLabel  matlab.ui.control.Label
+        AmplitudeSlider_2          matlab.ui.control.Slider
+        AmplitudeSlider_2Label     matlab.ui.control.Label
+        MESSAGEGENERATIONPanel     matlab.ui.container.Panel
+        FrequencyKnob              matlab.ui.control.Knob
+        FrequencyKnobLabel         matlab.ui.control.Label
+        AmplitudeSlider            matlab.ui.control.Slider
+        AmplitudeSliderLabel       matlab.ui.control.Label
+        Label                      matlab.ui.control.Label
+        UIAxes2                    matlab.ui.control.UIAxes
+    end
+
+    % Callbacks that handle component events
+    methods (Access = private)
+
+        % Value changed function: FrequencyKnob
+        function FrequencyKnobValueChanged(app, event)
+            fp = app.FrequencyKnob.Value;
+            
+        end
+
+        % Value changed function: CarrierFrequencyKnob
+        function CarrierFrequencyKnobValueChanged(app, event)
+           fc = app.CarrierFrequencyKnob.Value;
+            
+        end
+
+        % Value changed function: AmplitudeSlider
+        function AmplitudeSliderValueChanged(app, event)
+            amp = app.AmplitudeSlider.Value;
+            
+        end
+
+        % Value changed function: AmplitudeSlider_2
+        function AmplitudeSlider_2ValueChanged(app, event)
+            amc = app.AmplitudeSlider_2.Value;
+            
+        end
+
+        % Callback function
+        function GENERATEButtonPushed(app, event)
+  
+t = 0:0.001:1;
+c = app.AmplitudeSlider_2.Value * sin(2*pi*app.CarrierFrequencyKnob.Value * t);
+m = app.AmplitudeSlider.Value/2 * square(2*pi*app.FrequencyKnob.Value * t) + (app.AmplitudeSlider.Value/2);
+plot(app.UIAxes2, t, m);
+plot(app.UIAxes, t, c);
+
+            
+        end
+
+        % Value changed function: MODULATIONButton
+        function MODULATIONButtonValueChanged(app, event)
+            value = app.MODULATIONButton.Value;
+              
+ t = 0:0.001:1;
+c = app.AmplitudeSlider_2.Value * sin(2*pi*app.CarrierFrequencyKnob.Value * t);
+m = app.AmplitudeSlider.Value/2 * square(2*pi*app.FrequencyKnob.Value * t) + (app.AmplitudeSlider.Value/2);
+w = c .* m;
+plot(app.UIAxes2, t, w);
+
+            
+            
+        end
+
+        % Value changed function: DEMODULATIONButton
+        function DEMODULATIONButtonValueChanged(app, event)
+            value = app.DEMODULATIONButton.Value;
+t = 0:0.001:1;
+c = app.AmplitudeSlider_2.Value * sin(2*pi*app.CarrierFrequencyKnob.Value * t);
+m = app.AmplitudeSlider.Value/2 * square(2*pi*app.FrequencyKnob.Value * t) + (app.AmplitudeSlider.Value/2);
+w = c .* m;
+demodulatedSignal = w .* c;  
+filteredSignal = myLowPassFilter(demodulatedSignal, app.FrequencyKnob.Value/(2*pi));
+
+% Thresholding to recover the message signal
+recoveredMessage = zeros(size(m));
+threshold = max(filteredSignal) / 2;
+for i = 1:length(filteredSignal)
+    if filteredSignal(i) > threshold
+        recoveredMessage(i) = app.AmplitudeSlider.Value;
+    end
+end
+
+plot(app.UIAxes2,t,recoveredMessage);
+        end
+
+        % Value changed function: MESSAGEButton
+        function MESSAGEButtonValueChanged(app, event)
+            value = app.MESSAGEButton.Value;
+            
+            
+t = 0:0.001:1;
+
+m = app.AmplitudeSlider.Value/2 * square(2*pi*app.FrequencyKnob.Value * t) + (app.AmplitudeSlider.Value/2);
+plot(app.UIAxes2, t, m);
+
+
+        end
+
+        % Value changed function: CARRIERButton
+        function CARRIERButtonValueChanged(app, event)
+            value = app.CARRIERButton.Value;
+            t = 0:0.001:1;
+c = app.AmplitudeSlider_2.Value * sin(2*pi*app.CarrierFrequencyKnob.Value * t);
+
+plot(app.UIAxes2, t, c);
+
+        end
+
+        % Value changed function: TransmitButton
+        function TransmitButtonValueChanged(app, event)
+value = app.TransmitButton.Value;
+
+
+t = 0:0.001:1;
+c = app.AmplitudeSlider_2.Value * sin(2*pi*app.CarrierFrequencyKnob.Value * t);
+m = app.AmplitudeSlider.Value/2 * square(2*pi*app.FrequencyKnob.Value * t) + (app.AmplitudeSlider.Value/2);
+w = c .* m;
+demodulatedSignal = w .* c;  
+filteredSignal = myLowPassFilter(demodulatedSignal, app.FrequencyKnob.Value/(2*pi));
+
+% Thresholding to recover the message signal
+recoveredMessage = zeros(size(m));
+threshold = max(filteredSignal) / 2;
+for i = 1:length(filteredSignal)
+    if filteredSignal(i) > threshold
+        recoveredMessage(i) = app.AmplitudeSlider.Value;
+    end
+end
+
+transferredArray = [];
+
+% Transfer non-zero values from recoveredMessage to transferredArray
+for i = 1:length(recoveredMessage)
+    if recoveredMessage(i) ~= 0
+        transferredArray(end+1) = recoveredMessage(i);
+    end
+end
+
+a = arduino();
+ledPin = 'D9';
+configurePin(a, ledPin, 'DigitalOutput');
+writeDigitalPin(a, ledPin, 0);
+
+duration = 30; % Duration in seconds
+
+for i = 1:duration
+    if transferredArray(i) == 0
+        writeDigitalPin(a, ledPin, 0);
+    else
+        writeDigitalPin(a, ledPin, 1);
+    end
+    pause(1); % Delay for 1 second
+end
+
+writeDigitalPin(a, ledPin, 0); % Turn off the LED after the desired duration
+
+        end
+    end
+
+    % Component initialization
+    methods (Access = private)
+
+        % Create UIFigure and components
+        function createComponents(app)
+
+            % Create UIFigure and hide until all components are created
+            app.UIFigure = uifigure('Visible', 'off');
+            app.UIFigure.Color = [0.9686 0.9765 0.9804];
+            app.UIFigure.Position = [100 100 930 652];
+            app.UIFigure.Name = 'UI Figure';
+
+            % Create UIAxes2
+            app.UIAxes2 = uiaxes(app.UIFigure);
+            title(app.UIAxes2, 'DISPLAY')
+            xlabel(app.UIAxes2, 'X')
+            ylabel(app.UIAxes2, 'Y')
+            app.UIAxes2.FontName = 'Cambria Math';
+            app.UIAxes2.FontWeight = 'bold';
+            app.UIAxes2.FontSize = 15;
+            app.UIAxes2.Position = [319 19 604 293];
+
+            % Create Label
+            app.Label = uilabel(app.UIFigure);
+            app.Label.Position = [559 324 25 22];
+            app.Label.Text = '';
+
+            % Create MESSAGEGENERATIONPanel
+            app.MESSAGEGENERATIONPanel = uipanel(app.UIFigure);
+            app.MESSAGEGENERATIONPanel.Title = 'MESSAGE GENERATION';
+            app.MESSAGEGENERATIONPanel.BackgroundColor = [0.902 0.902 0.902];
+            app.MESSAGEGENERATIONPanel.FontName = 'Cambria Math';
+            app.MESSAGEGENERATIONPanel.FontWeight = 'bold';
+            app.MESSAGEGENERATIONPanel.FontSize = 15;
+            app.MESSAGEGENERATIONPanel.Position = [30 324 280 293];
+
+            % Create AmplitudeSliderLabel
+            app.AmplitudeSliderLabel = uilabel(app.MESSAGEGENERATIONPanel);
+            app.AmplitudeSliderLabel.HorizontalAlignment = 'right';
+            app.AmplitudeSliderLabel.FontName = 'Cambria Math';
+            app.AmplitudeSliderLabel.FontSize = 15;
+            app.AmplitudeSliderLabel.FontWeight = 'bold';
+            app.AmplitudeSliderLabel.Position = [90 223 81 22];
+            app.AmplitudeSliderLabel.Text = 'Amplitude';
+
+            % Create AmplitudeSlider
+            app.AmplitudeSlider = uislider(app.MESSAGEGENERATIONPanel);
+            app.AmplitudeSlider.ValueChangedFcn = createCallbackFcn(app, @AmplitudeSliderValueChanged, true);
+            app.AmplitudeSlider.Position = [45 197 185 3];
+
+            % Create FrequencyKnobLabel
+            app.FrequencyKnobLabel = uilabel(app.MESSAGEGENERATIONPanel);
+            app.FrequencyKnobLabel.HorizontalAlignment = 'center';
+            app.FrequencyKnobLabel.FontName = 'Cambria Math';
+            app.FrequencyKnobLabel.FontSize = 15;
+            app.FrequencyKnobLabel.FontWeight = 'bold';
+            app.FrequencyKnobLabel.Position = [54 125 169 22];
+            app.FrequencyKnobLabel.Text = ' Frequency';
+
+            % Create FrequencyKnob
+            app.FrequencyKnob = uiknob(app.MESSAGEGENERATIONPanel, 'continuous');
+            app.FrequencyKnob.ValueChangedFcn = createCallbackFcn(app, @FrequencyKnobValueChanged, true);
+            app.FrequencyKnob.Position = [108 33 60 60];
+
+            % Create CARRIERGENERATIONPanel
+            app.CARRIERGENERATIONPanel = uipanel(app.UIFigure);
+            app.CARRIERGENERATIONPanel.Title = 'CARRIER GENERATION';
+            app.CARRIERGENERATIONPanel.BackgroundColor = [0.902 0.902 0.902];
+            app.CARRIERGENERATIONPanel.FontName = 'Cambria Math';
+            app.CARRIERGENERATIONPanel.FontWeight = 'bold';
+            app.CARRIERGENERATIONPanel.FontSize = 15;
+            app.CARRIERGENERATIONPanel.Position = [30 19 280 293];
+
+            % Create AmplitudeSlider_2Label
+            app.AmplitudeSlider_2Label = uilabel(app.CARRIERGENERATIONPanel);
+            app.AmplitudeSlider_2Label.HorizontalAlignment = 'right';
+            app.AmplitudeSlider_2Label.FontName = 'Cambria Math';
+            app.AmplitudeSlider_2Label.FontSize = 15;
+            app.AmplitudeSlider_2Label.FontWeight = 'bold';
+            app.AmplitudeSlider_2Label.Position = [94 222 81 22];
+            app.AmplitudeSlider_2Label.Text = 'Amplitude';
+
+            % Create AmplitudeSlider_2
+            app.AmplitudeSlider_2 = uislider(app.CARRIERGENERATIONPanel);
+            app.AmplitudeSlider_2.ValueChangedFcn = createCallbackFcn(app, @AmplitudeSlider_2ValueChanged, true);
+            app.AmplitudeSlider_2.Position = [37 210 195 3];
+
+            % Create CarrierFrequencyKnobLabel
+            app.CarrierFrequencyKnobLabel = uilabel(app.CARRIERGENERATIONPanel);
+            app.CarrierFrequencyKnobLabel.HorizontalAlignment = 'center';
+            app.CarrierFrequencyKnobLabel.FontName = 'Cambria Math';
+            app.CarrierFrequencyKnobLabel.FontSize = 15;
+            app.CarrierFrequencyKnobLabel.FontWeight = 'bold';
+            app.CarrierFrequencyKnobLabel.Position = [67 132 137 22];
+            app.CarrierFrequencyKnobLabel.Text = 'Carrier Frequency';
+
+            % Create CarrierFrequencyKnob
+            app.CarrierFrequencyKnob = uiknob(app.CARRIERGENERATIONPanel, 'continuous');
+            app.CarrierFrequencyKnob.ValueChangedFcn = createCallbackFcn(app, @CarrierFrequencyKnobValueChanged, true);
+            app.CarrierFrequencyKnob.FontName = 'Cambria Math';
+            app.CarrierFrequencyKnob.Position = [105 51 60 60];
+
+            % Create MODULATIONButton
+            app.MODULATIONButton = uibutton(app.UIFigure, 'state');
+            app.MODULATIONButton.ValueChangedFcn = createCallbackFcn(app, @MODULATIONButtonValueChanged, true);
+            app.MODULATIONButton.Text = 'MODULATION';
+            app.MODULATIONButton.BackgroundColor = [1 0.4902 0.4902];
+            app.MODULATIONButton.FontSize = 14;
+            app.MODULATIONButton.FontWeight = 'bold';
+            app.MODULATIONButton.FontColor = [0.9804 0.9804 0.9804];
+            app.MODULATIONButton.Position = [339 415 211 64];
+
+            % Create DEMODULATIONButton
+            app.DEMODULATIONButton = uibutton(app.UIFigure, 'state');
+            app.DEMODULATIONButton.ValueChangedFcn = createCallbackFcn(app, @DEMODULATIONButtonValueChanged, true);
+            app.DEMODULATIONButton.Text = 'DEMODULATION';
+            app.DEMODULATIONButton.BackgroundColor = [0.9608 0.7686 0.4784];
+            app.DEMODULATIONButton.FontSize = 14;
+            app.DEMODULATIONButton.FontWeight = 'bold';
+            app.DEMODULATIONButton.FontColor = [0.9882 0.9843 0.9686];
+            app.DEMODULATIONButton.Position = [339 344 211 64];
+
+            % Create MESSAGEButton
+            app.MESSAGEButton = uibutton(app.UIFigure, 'state');
+            app.MESSAGEButton.ValueChangedFcn = createCallbackFcn(app, @MESSAGEButtonValueChanged, true);
+            app.MESSAGEButton.Text = 'MESSAGE';
+            app.MESSAGEButton.BackgroundColor = [0.6 0.9608 0.3451];
+            app.MESSAGEButton.FontSize = 15;
+            app.MESSAGEButton.FontWeight = 'bold';
+            app.MESSAGEButton.FontColor = [1 1 1];
+            app.MESSAGEButton.Position = [339 556 208 61];
+
+            % Create CARRIERButton
+            app.CARRIERButton = uibutton(app.UIFigure, 'state');
+            app.CARRIERButton.ValueChangedFcn = createCallbackFcn(app, @CARRIERButtonValueChanged, true);
+            app.CARRIERButton.Text = 'CARRIER';
+            app.CARRIERButton.BackgroundColor = [0.2863 0.5725 0.9216];
+            app.CARRIERButton.FontSize = 15;
+            app.CARRIERButton.FontWeight = 'bold';
+            app.CARRIERButton.FontColor = [0.9647 0.9804 0.9608];
+            app.CARRIERButton.Position = [339 487 208 61];
+
+            % Create Image
+            app.Image = uiimage(app.UIFigure);
+            app.Image.Position = [583 410 140 138];
+            app.Image.ImageSource = '24097-4-antenna-hd.png';
+
+            % Create TransmitButton
+            app.TransmitButton = uibutton(app.UIFigure, 'state');
+            app.TransmitButton.ValueChangedFcn = createCallbackFcn(app, @TransmitButtonValueChanged, true);
+            app.TransmitButton.Text = 'Transmit';
+            app.TransmitButton.BackgroundColor = [0.8353 0.3373 0.8588];
+            app.TransmitButton.FontName = 'Cambria Math';
+            app.TransmitButton.FontSize = 20;
+            app.TransmitButton.FontWeight = 'bold';
+            app.TransmitButton.FontColor = [1 1 1];
+            app.TransmitButton.Position = [568 350 174 50];
+
+            % Create Image2
+            app.Image2 = uiimage(app.UIFigure);
+            app.Image2.Position = [782 491 141 147];
+            app.Image2.ImageSource = 'ASKLOGO2.png';
+
+            % Show the figure after all components are created
+            app.UIFigure.Visible = 'on';
+        end
+    end
+
+    % App creation and deletion
+    methods (Access = public)
+
+        % Construct app
+        function app = ASK
+
+            % Create UIFigure and components
+            createComponents(app)
+
+            % Register the app with App Designer
+            registerApp(app, app.UIFigure)
+
+            if nargout == 0
+                clear app
+            end
+        end
+
+        % Code that executes before app deletion
+        function delete(app)
+
+            % Delete UIFigure when app is deleted
+            delete(app.UIFigure)
+        end
+    end
+end
